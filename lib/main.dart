@@ -218,33 +218,45 @@ class SiteHeader extends StatelessWidget implements PreferredSizeWidget {
   const SiteHeader({super.key});
 
   @override
-  Size get preferredSize => const Size.fromHeight(84);
+  Size get preferredSize => const Size.fromHeight(102);
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final desktop = width > 1180;
+    final desktop = width > 1280;
 
     return AppBar(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.white,
       elevation: 0,
-      toolbarHeight: 84,
+      scrolledUnderElevation: 0,
+      toolbarHeight: 102,
       automaticallyImplyLeading: false,
-      titleSpacing: 28,
+      titleSpacing: 22,
+      shape: const Border(
+        bottom: BorderSide(color: Color(0xFFF0F2F5), width: 1),
+      ),
       title: Row(
         children: [
           InkWell(
-            borderRadius: BorderRadius.circular(40),
+            borderRadius: BorderRadius.circular(44),
             onTap: () => goTo(context, '/'),
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Image.asset(
-                'assets/images/logo.png',
-                height: 56,
+            child: SizedBox(
+              width: 82,
+              height: 82,
+              child: Center(
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  height: 78,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
           ),
+          const SizedBox(width: 8),
+          // The full site menu now sits beside the logo so the information
+          // architecture is easy to discover during the client presentation.
+          const SiteMapMenuButton(),
           const Spacer(),
           if (desktop) ...[
             const HeaderLink(title: 'Home', route: '/'),
@@ -266,26 +278,290 @@ class SiteHeader extends StatelessWidget implements PreferredSizeWidget {
             const ProfileMenuButton(),
           ] else ...[
             const AssistantPulseButton(compact: true),
-            const SizedBox(width: 4),
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.menu_rounded),
-              onSelected: (route) => goTo(context, route),
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: '/', child: Text('Home')),
-                PopupMenuItem(value: '/about', child: Text('About')),
-                PopupMenuItem(value: '/services', child: Text('Services')),
-                PopupMenuItem(value: '/learning', child: Text('Upskilling')),
-                PopupMenuItem(value: '/store', child: Text('Store')),
-                PopupMenuItem(value: '/insights', child: Text('Insights')),
-                PopupMenuItem(value: '/contact', child: Text('Contact')),
-                PopupMenuDivider(),
-                PopupMenuItem(value: '/dashboard', child: Text('My Learning')),
-                PopupMenuItem(value: '/register', child: Text('Login / Register')),
-                PopupMenuItem(value: '/cart', child: Text('Cart')),
-              ],
+            const SizedBox(width: 6),
+            IconButton(
+              tooltip: 'Cart',
+              onPressed: () => goTo(context, '/cart'),
+              icon: const Icon(Icons.shopping_bag_outlined),
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Compact structured menu that mirrors the coursework sitemap.
+/// Only the main groups are shown first. Clicking a group expands its
+/// sub-pages, so the menu stays clean instead of showing every route at once.
+class SiteMapMenuButton extends StatelessWidget {
+  const SiteMapMenuButton({super.key});
+
+  Widget _menuSection(
+      BuildContext rootContext,
+      BuildContext dialogContext, {
+        required String title,
+        required IconData icon,
+        required List<(String, String, IconData)> items,
+      }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE9EDF5)),
+      ),
+      child: Theme(
+        data: Theme.of(rootContext).copyWith(
+          dividerColor: Colors.transparent,
+          splashColor: AppColors.iceBlue,
+          highlightColor: AppColors.iceBlue,
+        ),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+          childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+          iconColor: AppColors.blue,
+          collapsedIconColor: Colors.black38,
+          leading: Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.iceBlue,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppColors.blue, size: 19),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(
+              color: AppColors.dark,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          children: items
+              .map(
+                (item) => ListTile(
+              dense: true,
+              minLeadingWidth: 28,
+              contentPadding: const EdgeInsets.only(left: 46, right: 10),
+              leading: Icon(
+                item.$3,
+                size: 17,
+                color: AppColors.deepBlue.withOpacity(0.72),
+              ),
+              title: Text(
+                item.$1,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right_rounded,
+                size: 17,
+                color: Colors.black26,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onTap: () {
+                Navigator.pop(dialogContext);
+                goTo(rootContext, item.$2);
+              },
+            ),
+          )
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openMenu(BuildContext context) async {
+    final width = MediaQuery.of(context).size.width;
+    final leftInset = width < 700 ? 14.0 : 96.0;
+
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.06),
+      builder: (dialogContext) {
+        return Dialog(
+          alignment: Alignment.topLeft,
+          insetPadding: EdgeInsets.fromLTRB(
+            leftInset,
+            108,
+            14,
+            14,
+          ),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          elevation: 18,
+          shadowColor: Colors.black.withOpacity(0.14),
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minWidth: 320,
+              maxWidth: 360,
+              maxHeight: 650,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 10, 13),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: AppColors.deepBlue,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.account_tree_outlined,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Explore MT Alchemy',
+                              style: TextStyle(
+                                color: AppColors.dark,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Choose an area to see its pages',
+                              style: TextStyle(
+                                color: Colors.black45,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Close menu',
+                        onPressed: () => Navigator.pop(dialogContext),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: Color(0xFFF0F2F5)),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        _menuSection(
+                          context,
+                          dialogContext,
+                          title: 'Public Website',
+                          icon: Icons.language_rounded,
+                          items: const [
+                            ('Home', '/', Icons.home_outlined),
+                            ('About', '/about', Icons.info_outline_rounded),
+                            ('Insights', '/insights', Icons.lightbulb_outline_rounded),
+                            ('Contact', '/contact', Icons.mail_outline_rounded),
+                          ],
+                        ),
+                        _menuSection(
+                          context,
+                          dialogContext,
+                          title: 'Services',
+                          icon: Icons.auto_awesome_outlined,
+                          items: const [
+                            ('Services Overview', '/services', Icons.grid_view_rounded),
+                            ('For Organizations', '/organizations', Icons.apartment_rounded),
+                            ('Corporate Programmes', '/corporate-programmes', Icons.groups_2_outlined),
+                            ('Individual Coaching', '/coaching', Icons.support_agent_rounded),
+                          ],
+                        ),
+                        _menuSection(
+                          context,
+                          dialogContext,
+                          title: 'Learning',
+                          icon: Icons.school_outlined,
+                          items: const [
+                            ('Upskilling / Learning Hub', '/learning', Icons.school_outlined),
+                            ('Find My Course', '/course-finder', Icons.quiz_outlined),
+                            ('My Learning', '/dashboard', Icons.dashboard_outlined),
+                            ('Certificates', '/certificate', Icons.workspace_premium_outlined),
+                          ],
+                        ),
+                        _menuSection(
+                          context,
+                          dialogContext,
+                          title: 'Store',
+                          icon: Icons.storefront_outlined,
+                          items: const [
+                            ('Store', '/store', Icons.storefront_outlined),
+                            ('Cart', '/cart', Icons.shopping_bag_outlined),
+                            ('Checkout', '/checkout', Icons.credit_card_outlined),
+                          ],
+                        ),
+                        _menuSection(
+                          context,
+                          dialogContext,
+                          title: 'Account & Portals',
+                          icon: Icons.account_circle_outlined,
+                          items: const [
+                            ('Login / Register', '/register', Icons.login_rounded),
+                            ('Employer Portal', '/employer', Icons.business_center_outlined),
+                            ('Trainer Preview', '/trainer', Icons.co_present_outlined),
+                            ('Admin Preview', '/admin', Icons.admin_panel_settings_outlined),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Explore all sections',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => _openMenu(context),
+        child: Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.iceBlue,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppColors.blue.withOpacity(0.16),
+            ),
+          ),
+          child: const Icon(
+            Icons.menu_rounded,
+            color: AppColors.deepBlue,
+            size: 24,
+          ),
+        ),
       ),
     );
   }
